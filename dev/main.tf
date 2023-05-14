@@ -7,10 +7,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "kyoong-dev-tf"
-    key    = "terraform.tfstate"
-    region = "ap-northeast-2"
-
+    bucket               = "kyoong-dev-tf"
+    key                  = "terraform.tfstate"
+    region               = "ap-northeast-2"
+    workspace_key_prefix = "temp"
   }
 }
 
