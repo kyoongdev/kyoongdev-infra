@@ -5,6 +5,13 @@ terraform {
       version = "~> 4.0"
     }
   }
+
+  backend "s3" {
+    bucket = "kyoong-dev-tf"
+    key    = "terraform.tfstate"
+    region = "ap-northeast-2"
+
+  }
 }
 
 provider "aws" {
@@ -12,14 +19,15 @@ provider "aws" {
 }
 
 
-variable "envs" {
-  type    = list(string)
-  default = ["dev", "prd", ""]
-}
-
 module "vpc_list" {
-  for_each = toset([for env in var.envs : env if env != ""])
-  source   = "../infra"
-  env      = each.key
+  source = "../infra"
+  env    = terraform.workspace
 
 }
+data "aws_s3_bucket" "tf_backend" {
+  count  = terraform.workspace == "default" ? 1 : 0
+  bucket = "kyoong-dev-tf"
+
+
+}
+
