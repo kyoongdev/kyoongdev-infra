@@ -8,20 +8,22 @@ resource "aws_vpc" "default_vpc" {
   }
 }
 resource "aws_subnet" "public_subnet" {
-  count             = var.env == "prd" ? 0 : length(var.az)
-  vpc_id            = aws_vpc.default_vpc.id
-  cidr_block        = cidrsubnet(var.cidr, 8, count.index)
-  availability_zone = element(var.az, count.index)
+  count                   = var.env == "prd" ? 0 : length(var.az)
+  vpc_id                  = aws_vpc.default_vpc.id
+  cidr_block              = cidrsubnet(var.cidr, 8, count.index)
+  availability_zone       = element(var.az, count.index)
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "${var.namespace}_public_subnet_${count.index}_${var.env}"
   }
 }
 
-//MEMO: cidr_block은 바꾸면 destroy 후 add 됨
+
 resource "aws_subnet" "private_subnet" {
-  count             = var.env == "prd" ? 0 : length(var.az)
-  vpc_id            = aws_vpc.default_vpc.id
+  count  = var.env == "prd" ? 0 : length(var.az)
+  vpc_id = aws_vpc.default_vpc.id
+
   cidr_block        = cidrsubnet(var.cidr, 8, count.index + 10)
   availability_zone = element(var.az, count.index)
 
@@ -50,24 +52,6 @@ resource "aws_internet_gateway" "igw" {
   }
 }
 
-resource "aws_eip" "ngw_ip" {
-  vpc = true
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_nat_gateway" "ngw" {
-  allocation_id = aws_eip.ngw_ip.id
-  subnet_id     = aws_subnet.public_subnet[0].id
-
-  tags = {
-    Name = "NAT Gateway"
-  }
-}
-
-
 resource "aws_route_table" "public_subnet_rt" {
   vpc_id = aws_vpc.default_vpc.id
 
@@ -76,24 +60,14 @@ resource "aws_route_table" "public_subnet_rt" {
     gateway_id = aws_internet_gateway.igw.id
   }
 }
-
 resource "aws_route_table_association" "public_subnet_rta" {
   count          = length(aws_subnet.public_subnet)
   subnet_id      = element(aws_subnet.public_subnet.*.id, count.index)
   route_table_id = aws_route_table.public_subnet_rt.id
 }
-
-
 resource "aws_route_table" "private_subnet_rt" {
   vpc_id = aws_vpc.default_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.ngw.id
-  }
-
 }
-
 resource "aws_route_table_association" "private_subnet_rta" {
   count          = length(aws_subnet.private_subnet)
   subnet_id      = element(aws_subnet.private_subnet.*.id, count.index)
@@ -121,8 +95,15 @@ resource "aws_network_acl" "bastion_acl" {
     from_port  = 8
     to_port    = 0
   }
+  egress {
+    protocol   = "-1"
+    rule_no    = "100"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
+  }
 
-  // inbound
   ingress {
     protocol   = "tcp"
     rule_no    = "10"
@@ -138,6 +119,15 @@ resource "aws_network_acl" "bastion_acl" {
     action     = "allow"
     cidr_block = var.cidr
     from_port  = 8
+    to_port    = 0
+  }
+
+  ingress {
+    protocol   = "-1"
+    rule_no    = "100"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
     to_port    = 0
   }
 
@@ -201,30 +191,17 @@ resource "aws_network_acl" "private_server_acl" {
   }
 }
 
-resource "aws_vpc_endpoint" "ecr_dkr" {
+resource "aws_vpc_endpoint" "endpoints" {
   vpc_id              = aws_vpc.default_vpc.id
   private_dns_enabled = true
-  service_name        = "com.amazonaws.ap-northeast-2.ecr.dkr"
+  for_each            = local.endpoints
   vpc_endpoint_type   = "Interface"
+  service_name        = "com.amazonaws.ap-northeast-2.${each.value.name}"
   subnet_ids          = aws_subnet.private_subnet[*].id
   security_group_ids  = [aws_security_group.vpc_endpoint.id]
 
   tags = {
-    Name = "${var.namespace}_ecr_dkr_${var.env}"
-  }
-}
-
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id              = aws_vpc.default_vpc.id
-  private_dns_enabled = true
-  service_name        = "com.amazonaws.ap-northeast-2.ecr.api"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private_subnet[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoint.id]
-
-
-  tags = {
-    Name = "${var.namespace}_ecr_api_${var.env}"
+    Name = "${var.namespace}_${each.value.name}_${var.env}"
   }
 }
 
@@ -234,5 +211,8 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_endpoint_type = "Gateway"
   route_table_ids   = [aws_route_table.private_subnet_rt.id]
 
-
+  tags = {
+    Name = "${var.namespace}_s3_endpoint"
+  }
 }
+
