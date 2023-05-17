@@ -26,7 +26,7 @@ resource "aws_alb_listener" "http" {
 
 resource "aws_alb_target_group" "alb_tg" {
   name        = "${var.namespace}-ip-tg"
-  port        = 8000
+  port        = var.container_port
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.default_vpc.id

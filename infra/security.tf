@@ -18,8 +18,8 @@ resource "aws_security_group" "alb" {
 
   ingress {
     protocol    = "tcp"
-    from_port   = 8000
-    to_port     = 8000
+    from_port   = var.container_port
+    to_port     = var.container_port
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -39,7 +39,15 @@ resource "aws_security_group" "vpc_endpoint" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.cidr]
+  }
+
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.cidr]
   }
 
   egress {
@@ -59,8 +67,8 @@ resource "aws_security_group" "ecs_task" {
   name   = "${var.namespace}-fargate-task-sg"
   vpc_id = aws_vpc.default_vpc.id
   ingress {
-    from_port   = var.app_port
-    to_port     = var.app_port
+    from_port   = var.container_port
+    to_port     = var.host_port
     protocol    = "tcp"
     cidr_blocks = [var.cidr]
   }
@@ -70,6 +78,13 @@ resource "aws_security_group" "ecs_task" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [aws_vpc_endpoint.s3.prefix_list_id]
   }
 
   egress {

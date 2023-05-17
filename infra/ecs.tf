@@ -8,13 +8,15 @@ data "template_file" "service" {
     container_port     = var.container_port
     host_port          = var.host_port
     app_name           = var.app_name
+    digest             = var.digest
   }
 }
 
 resource "aws_ecs_task_definition" "default" {
-  family                   = "${var.app_name}-task"
+  family                   = "${var.app_name}-task-${var.env}"
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   cpu                      = 256
   memory                   = 512
   requires_compatibilities = ["FARGATE"]
@@ -27,7 +29,7 @@ resource "aws_ecs_task_definition" "default" {
 }
 
 resource "aws_ecs_cluster" "default" {
-  name = "${var.app_name}-cluster"
+  name = "${var.app_name}-cluster-${var.env}"
 }
 
 
@@ -53,7 +55,7 @@ resource "aws_ecs_service" "staging" {
 
   depends_on = [
     aws_alb_listener.http,
-    aws_iam_role_policy_attachment.ecs_task_execution_role,
+    aws_iam_role_policy_attachment.ecs-task-execution-role-policy-attachment,
   ]
 
   tags = {

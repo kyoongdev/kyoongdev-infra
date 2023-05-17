@@ -73,6 +73,14 @@ resource "aws_route_table_association" "private_subnet_rta" {
   subnet_id      = element(aws_subnet.private_subnet.*.id, count.index)
   route_table_id = aws_route_table.private_subnet_rt.id
 }
+resource "aws_route_table" "database_subnet_rt" {
+  vpc_id = aws_vpc.default_vpc.id
+}
+resource "aws_route_table_association" "database_subnet_rta" {
+  count          = length(aws_subnet.database_subnet)
+  subnet_id      = element(aws_subnet.database_subnet.*.id, count.index)
+  route_table_id = aws_route_table.database_subnet_rt.id
+}
 
 resource "aws_network_acl" "bastion_acl" {
   vpc_id     = aws_vpc.default_vpc.id
@@ -154,8 +162,8 @@ resource "aws_network_acl" "private_server_acl" {
     rule_no    = "11"
     action     = "allow"
     cidr_block = var.cidr
-    from_port  = 8000
-    to_port    = 8000
+    from_port  = var.container_port
+    to_port    = var.container_port
   }
 
   ingress {
@@ -165,6 +173,14 @@ resource "aws_network_acl" "private_server_acl" {
     cidr_block = var.cidr
     from_port  = 443
     to_port    = 443
+  }
+  ingress {
+    protocol   = "tcp"
+    rule_no    = "13"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 65535
   }
 
   egress {
@@ -176,21 +192,29 @@ resource "aws_network_acl" "private_server_acl" {
     to_port    = 3306
   }
 
-
   egress {
     protocol   = "tcp"
     rule_no    = "11"
     action     = "allow"
-    cidr_block = var.cidr
+    cidr_block = "0.0.0.0/0"
     from_port  = 443
     to_port    = 443
   }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = "13"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 65535
+  }
+
 
   tags = {
     Name = "private_server_acl"
   }
 }
-
 resource "aws_vpc_endpoint" "endpoints" {
   vpc_id              = aws_vpc.default_vpc.id
   private_dns_enabled = true

@@ -1,15 +1,14 @@
 [
   {
     "name": "${app_name}",
-    "image": "${aws_ecr_repository}:${tag}",
+    "image": "${aws_ecr_repository}:${tag}@${digest}",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
         "awslogs-region": "${region}",
-        "awslogs-stream-prefix": "ecs",
-        "awslogs-group": "awslogs-service-staging",
-        "awslogs-create-group": "true"
+        "awslogs-group": "/ecs/${app_name}",
+        "awslogs-stream-prefix": "ecs"
       }
     },
     "portMappings": [
