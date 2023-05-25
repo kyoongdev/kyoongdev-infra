@@ -17,6 +17,10 @@ locals {
     },
     "ecr-dkr" = {
       name = "ecr.dkr"
+    },
+    "codebuild" = {
+      name = "codebuild"
     }
+
   }
 }

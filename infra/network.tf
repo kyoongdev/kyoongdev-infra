@@ -161,7 +161,7 @@ resource "aws_network_acl" "private_server_acl" {
     protocol   = "tcp"
     rule_no    = "11"
     action     = "allow"
-    cidr_block = var.cidr
+    cidr_block = "0.0.0.0/0"
     from_port  = var.container_port
     to_port    = var.container_port
   }
@@ -174,12 +174,13 @@ resource "aws_network_acl" "private_server_acl" {
     from_port  = 443
     to_port    = 443
   }
+
   ingress {
     protocol   = "tcp"
     rule_no    = "13"
     action     = "allow"
     cidr_block = "0.0.0.0/0"
-    from_port  = 0
+    from_port  = 1025
     to_port    = 65535
   }
 
@@ -206,7 +207,7 @@ resource "aws_network_acl" "private_server_acl" {
     rule_no    = "13"
     action     = "allow"
     cidr_block = "0.0.0.0/0"
-    from_port  = 0
+    from_port  = 1025
     to_port    = 65535
   }
 
@@ -215,6 +216,35 @@ resource "aws_network_acl" "private_server_acl" {
     Name = "private_server_acl"
   }
 }
+
+resource "aws_network_acl" "database_acl" {
+  vpc_id     = aws_vpc.default_vpc.id
+  subnet_ids = aws_subnet.database_subnet[*].id
+
+  ingress {
+    protocol   = "tcp"
+    rule_no    = "10"
+    action     = "allow"
+    cidr_block = var.cidr
+    from_port  = 3306
+    to_port    = 3306
+  }
+
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = "10"
+    action     = "allow"
+    cidr_block = var.cidr
+    from_port  = 3306
+    to_port    = 3306
+  }
+
+  tags = {
+    Name = "database_acl"
+  }
+}
+
 resource "aws_vpc_endpoint" "endpoints" {
   vpc_id              = aws_vpc.default_vpc.id
   private_dns_enabled = true

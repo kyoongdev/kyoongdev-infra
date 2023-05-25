@@ -20,7 +20,7 @@ variable "app_name" {
 
 variable "digest" {
   type    = string
-  default = "sha256:54b89a8ca40468d156781910941b1f65d05a75906c28bb84db6ac18e331f11b4"
+  default = "sha256:9a60440ff8082ae8194d16a7016d51e5bfbdefdfe4d085440281c27259951ad3"
 }
 
 variable "image_tag" {
@@ -30,7 +30,7 @@ variable "image_tag" {
 
 variable "repository_url" {
   type    = string
-  default = "766738930863.dkr.ecr.ap-northeast-2.amazonaws.com/kyoongdev"
+  default = "766738930863.dkr.ecr.ap-northeast-2.amazonaws.com/roof"
 }
 
 variable "env" {
@@ -53,12 +53,6 @@ variable "az" {
   default = ["ap-northeast-2a", "ap-northeast-2c"]
 }
 
-
-variable "app_port" {
-  type    = number
-  default = 8000
-}
-
 variable "template_path" {
   type    = string
   default = "infra/ecs.config.tpl"
@@ -73,4 +67,24 @@ variable "scaling_max_capacity" {
 variable "scaling_min_capacity" {
   type    = number
   default = 1
+}
+
+variable "database_name" {
+  type    = string
+  default = "roof"
+}
+
+variable "rds_name" {
+  type    = string
+  default = "roof-test"
+}
+
+variable "rds_username" {
+  type    = string
+  default = "admin"
+}
+
+variable "rds_password" {
+  type    = string
+  default = "wemacu123qwe"
 }
